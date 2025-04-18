@@ -10,12 +10,14 @@ import { Link } from "react-router-dom";
 export function BlogPostsSection() {
   const [posts, setPosts] = useState<PostContent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Carregar dados do CMS
   useEffect(() => {
     const loadPosts = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         
         // Buscar dados da API do CMS
         const postsData = await fetchPosts();
@@ -23,6 +25,7 @@ export function BlogPostsSection() {
         setPosts(postsData);
       } catch (error) {
         console.error("Erro ao carregar postagens:", error);
+        setError("Não foi possível carregar as postagens. Por favor, tente novamente mais tarde.");
       } finally {
         setIsLoading(false);
       }
@@ -33,12 +36,17 @@ export function BlogPostsSection() {
 
   // Formatar data para exibição
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return new Date(dateString).toLocaleDateString('pt-BR', options);
+    try {
+      const options: Intl.DateTimeFormatOptions = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      };
+      return new Date(dateString).toLocaleDateString('pt-BR', options);
+    } catch (error) {
+      console.error("Erro ao formatar data:", error);
+      return dateString; // Retorna a string original em caso de erro
+    }
   };
 
   return (
@@ -74,8 +82,12 @@ export function BlogPostsSection() {
               </Card>
             ))}
           </div>
+        ) : error ? (
+          <div className="text-center py-10 border rounded-lg bg-gray-50">
+            <p className="text-gray-500">{error}</p>
+          </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-10 border rounded-lg">
+          <div className="text-center py-10 border rounded-lg bg-gray-50">
             <p className="text-gray-500">Nenhum artigo disponível no momento.</p>
           </div>
         ) : (
@@ -84,16 +96,18 @@ export function BlogPostsSection() {
               <Card key={post.id} className="overflow-hidden flex flex-col h-full transition-all duration-200 hover:shadow-md">
                 <div className="relative h-48 overflow-hidden">
                   <img 
-                    src={post.coverImage}
+                    src={post.coverImage || "/blog-placeholder.jpg"}
                     alt={post.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = "/blog-placeholder.jpg";
                     }}
                   />
-                  <Badge className="absolute top-3 right-3 bg-white text-gray-800">
-                    {post.category}
-                  </Badge>
+                  {post.category && (
+                    <Badge className="absolute top-3 right-3 bg-white text-gray-800">
+                      {post.category}
+                    </Badge>
+                  )}
                 </div>
                 <CardContent className="p-5 flex-grow">
                   <p className="text-sm text-gray-500 mb-2">{formatDate(post.date)}</p>

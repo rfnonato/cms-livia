@@ -11,12 +11,14 @@ export function MediaContentSection() {
   const [videos, setVideos] = useState<VideoContent[]>([]);
   const [podcasts, setPodcasts] = useState<PodcastContent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Carregar dados do CMS
   useEffect(() => {
     const loadMediaContent = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         
         // Buscar dados da API do CMS
         const videosData = await fetchVideos();
@@ -26,6 +28,7 @@ export function MediaContentSection() {
         setPodcasts(podcastsData);
       } catch (error) {
         console.error("Erro ao carregar conteúdo de mídia:", error);
+        setError("Não foi possível carregar o conteúdo de mídia. Por favor, tente novamente mais tarde.");
       } finally {
         setIsLoading(false);
       }
@@ -39,9 +42,12 @@ export function MediaContentSection() {
     <Card key={video.id} className="overflow-hidden">
       <div className="relative pb-[56.25%] bg-gray-100">
         <img 
-          src={video.thumbnail} 
+          src={video.thumbnail || "/video-placeholder.jpg"} 
           alt={video.title}
           className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/video-placeholder.jpg";
+          }}
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <Button variant="outline" size="icon" className="rounded-full bg-white/80 hover:bg-white">
@@ -63,7 +69,7 @@ export function MediaContentSection() {
       <div className="flex items-center p-4">
         <div className="w-16 h-16 mr-4 bg-gray-100 rounded-md overflow-hidden">
           <img 
-            src={podcast.thumbnail} 
+            src={podcast.thumbnail || "/podcast-placeholder.jpg"} 
             alt={podcast.title}
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -93,46 +99,56 @@ export function MediaContentSection() {
           vídeos e podcasts exclusivos.
         </p>
 
-        <Tabs defaultValue="videos" className="w-full max-w-4xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="videos" className="flex items-center gap-2">
-              <YoutubeIcon className="h-4 w-4" /> Vídeos
-            </TabsTrigger>
-            <TabsTrigger value="podcasts" className="flex items-center gap-2">
-              <Music className="h-4 w-4" /> Podcasts
-            </TabsTrigger>
-          </TabsList>
+        {error ? (
+          <div className="text-center py-8 border rounded-lg bg-gray-50">
+            <p className="text-gray-500">{error}</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="videos" className="w-full max-w-4xl mx-auto">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="videos" className="flex items-center gap-2">
+                <YoutubeIcon className="h-4 w-4" /> Vídeos
+              </TabsTrigger>
+              <TabsTrigger value="podcasts" className="flex items-center gap-2">
+                <Music className="h-4 w-4" /> Podcasts
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="videos" className="space-y-6">
-            {isLoading ? (
-              <div className="text-center py-8">Carregando vídeos...</div>
-            ) : videos.length === 0 ? (
-              <div className="text-center py-8">Nenhum vídeo disponível no momento.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {videos.slice(0, 4).map(renderVideoCard)}
+            <TabsContent value="videos" className="space-y-6">
+              {isLoading ? (
+                <div className="text-center py-8">Carregando vídeos...</div>
+              ) : videos.length === 0 ? (
+                <div className="text-center py-8 border rounded-lg bg-gray-50">
+                  <p className="text-gray-500">Nenhum vídeo disponível no momento.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {videos.slice(0, 4).map(renderVideoCard)}
+                </div>
+              )}
+              <div className="text-center mt-6">
+                <Button variant="outline">Ver todos os vídeos</Button>
               </div>
-            )}
-            <div className="text-center mt-6">
-              <Button variant="outline">Ver todos os vídeos</Button>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="podcasts" className="space-y-6">
-            {isLoading ? (
-              <div className="text-center py-8">Carregando podcasts...</div>
-            ) : podcasts.length === 0 ? (
-              <div className="text-center py-8">Nenhum podcast disponível no momento.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {podcasts.slice(0, 4).map(renderPodcastCard)}
+            <TabsContent value="podcasts" className="space-y-6">
+              {isLoading ? (
+                <div className="text-center py-8">Carregando podcasts...</div>
+              ) : podcasts.length === 0 ? (
+                <div className="text-center py-8 border rounded-lg bg-gray-50">
+                  <p className="text-gray-500">Nenhum podcast disponível no momento.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {podcasts.slice(0, 4).map(renderPodcastCard)}
+                </div>
+              )}
+              <div className="text-center mt-6">
+                <Button variant="outline">Ver todos os podcasts</Button>
               </div>
-            )}
-            <div className="text-center mt-6">
-              <Button variant="outline">Ver todos os podcasts</Button>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </section>
   );

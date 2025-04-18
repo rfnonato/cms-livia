@@ -36,7 +36,7 @@ import {
   KeyRound,
   Mail,
   BellRing,
-  CloudUpload,
+  UploadCloud,
   Smartphone,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -223,7 +223,7 @@ export default function Settings() {
 
                     <div className="rounded-md border p-4">
                       <div className="flex items-center gap-4">
-                        <CloudUpload className="h-8 w-8 text-muted-foreground" />
+                        <UploadCloud className="h-8 w-8 text-muted-foreground" />
                         <div className="flex-1 space-y-1">
                           <p className="text-sm font-medium">Storage Usage</p>
                           <div className="h-2 w-full rounded-full bg-muted">
