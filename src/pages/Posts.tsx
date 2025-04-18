@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,14 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
   Table,
   TableBody,
   TableCell,
@@ -24,107 +16,88 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import {
-  ChevronDown,
-  Edit,
-  Eye,
-  MoreHorizontal,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import {
   Plus,
   Search,
+  MoreHorizontal,
+  Edit,
+  Eye,
   Trash2,
+  FileText,
+  Filter,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { PostContent } from "@/types/postContent";
+import { fetchPosts } from "@/lib/api/postContent";
 
-// Dummy data for posts
-const posts = [
-  {
-    id: 1,
-    title: "Getting Started with Content Creation",
-    status: "published",
-    date: "2023-11-01",
-    category: "Tutorials",
-    views: 1240,
-  },
-  {
-    id: 2,
-    title: "10 Tips for Growing Your Audience",
-    status: "published",
-    date: "2023-10-22",
-    category: "Growth",
-    views: 984,
-  },
-  {
-    id: 3,
-    title: "My Favorite Editing Tools",
-    status: "draft",
-    date: "2023-11-05",
-    category: "Resources",
-    views: 0,
-  },
-  {
-    id: 4,
-    title: "How to Monetize Your Content",
-    status: "scheduled",
-    date: "2023-11-15",
-    category: "Business",
-    views: 0,
-  },
-  {
-    id: 5,
-    title: "SEO for Content Creators",
-    status: "published",
-    date: "2023-10-15",
-    category: "SEO",
-    views: 1567,
-  },
-];
-
-export default function Posts() {
+const Posts = () => {
+  const [posts, setPosts] = useState<PostContent[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const filteredPosts = posts.filter((post) =>
-    post.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    const loadPosts = async () => {
+      try {
+        setIsLoading(true);
+        const postsData = await fetchPosts();
+        setPosts(postsData);
+      } catch (error) {
+        console.error("Erro ao carregar posts:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "published":
-        return "bg-green-100 text-green-800";
-      case "draft":
-        return "bg-gray-100 text-gray-800";
-      case "scheduled":
-        return "bg-blue-100 text-blue-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+    loadPosts();
+  }, []);
+
+  // Extrair todas as categorias únicas dos posts
+  const categories = ['all', ...Array.from(new Set(posts.map(post => post.category)))];
+
+  // Filtrar posts por termo de busca e categoria
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = 
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || post.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Posts</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Artigos</h1>
             <p className="text-muted-foreground mt-1">
-              Manage your blog posts and articles
+              Gerencie suas postagens e artigos do blog
             </p>
           </div>
-          <Button 
-            onClick={() => navigate("/admin/posts/new")}
-            className="flex items-center gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Post</span>
-          </Button>
+          <Link to="/admin/posts/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Artigo
+            </Button>
+          </Link>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>All Posts</CardTitle>
-            <CardDescription>View and manage your content</CardDescription>
+            <CardTitle>Artigos e Publicações</CardTitle>
+            <CardDescription>
+              Visualize, edite e exclua suas postagens
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
@@ -133,86 +106,115 @@ export default function Posts() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search posts..."
+                    placeholder="Pesquisar artigos..."
                     className="pl-8 w-full"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Tabs defaultValue="all" className="w-full sm:max-w-[400px]">
-                  <TabsList className="grid grid-cols-4 w-full">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="published">Published</TabsTrigger>
-                    <TabsTrigger value="draft">Draft</TabsTrigger>
-                    <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <select
+                    className="border rounded px-2 py-1 text-sm"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category === 'all' ? 'Todas categorias' : category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Views</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPosts.map((post) => (
-                      <TableRow key={post.id}>
-                        <TableCell className="font-medium">{post.title}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(post.status)}
-                          >
-                            {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(post.date).toLocaleDateString()}</TableCell>
-                        <TableCell>{post.category}</TableCell>
-                        <TableCell>{post.views.toLocaleString()}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                              >
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                <span>Edit</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                <span>View</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span>Delete</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+              {isLoading ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <p className="text-muted-foreground">Carregando artigos...</p>
+                </div>
+              ) : filteredPosts.length === 0 ? (
+                <div className="h-[300px] flex flex-col items-center justify-center border rounded-lg">
+                  <FileText className="h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">Nenhum artigo encontrado</p>
+                  <Link to="/admin/posts/new">
+                    <Button variant="outline" className="mt-4">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Criar novo artigo
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[400px]">Título</TableHead>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Autor</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPosts.map((post) => (
+                        <TableRow key={post.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex gap-3 items-center">
+                              <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                <img
+                                  src={post.coverImage}
+                                  alt={post.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/blog-placeholder.jpg";
+                                  }}
+                                />
+                              </div>
+                              <div className="truncate max-w-[300px]">{post.title}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{post.category}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(post.date).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell>{post.author}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  <span>Visualizar</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  <span>Editar</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  <span>Excluir</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
     </DashboardLayout>
   );
-}
+};
+
+export default Posts;

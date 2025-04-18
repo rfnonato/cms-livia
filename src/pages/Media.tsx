@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,11 +36,14 @@ import {
   Trash2,
   Youtube,
   Podcast,
+  Pencil,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VideoContent, PodcastContent } from "@/types/mediaContent";
+import { fetchVideos, fetchPodcasts } from "@/lib/api/mediaContent";
 
 // Dummy data for media items
 const mediaItems = [
@@ -101,10 +103,32 @@ const mediaItems = [
   },
 ];
 
-export default function Media() {
+const Media = () => {
+  const [videos, setVideos] = useState<VideoContent[]>([]);
+  const [podcasts, setPodcasts] = useState<PodcastContent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState("all");
+
+  useEffect(() => {
+    const loadMediaContent = async () => {
+      try {
+        setIsLoading(true);
+        const videosData = await fetchVideos();
+        const podcastsData = await fetchPodcasts();
+        
+        setVideos(videosData);
+        setPodcasts(podcastsData);
+      } catch (error) {
+        console.error("Erro ao carregar conteúdo de mídia:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMediaContent();
+  }, []);
 
   const handleItemSelect = (id: number) => {
     if (selectedItems.includes(id)) {
@@ -151,7 +175,7 @@ export default function Media() {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Media</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de Mídia</h1>
             <p className="text-muted-foreground mt-1">
               Manage your videos, images, and audio files
             </p>
@@ -256,93 +280,132 @@ export default function Media() {
                 </Tabs>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group relative border rounded-md overflow-hidden hover:shadow-md transition-shadow"
-                  >
-                    <div className="absolute top-2 left-2 z-10">
-                      <Checkbox
-                        checked={selectedItems.includes(item.id)}
-                        onCheckedChange={() => handleItemSelect(item.id)}
-                        className="bg-white border-gray-300 data-[state=checked]:bg-primary"
-                      />
-                    </div>
-                    <div className="absolute top-2 right-2 z-10">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            <span>Preview</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Download className="mr-2 h-4 w-4" />
-                            <span>Download</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Copy className="mr-2 h-4 w-4" />
-                            <span>Copy Link</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Delete</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    <div className="aspect-video bg-muted flex items-center justify-center">
-                      <img
-                        src={item.thumbnail}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {item.type === "video" && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="h-12 w-12 rounded-full bg-black/50 flex items-center justify-center">
-                            <Film className="h-6 w-6 text-white" />
-                          </div>
-                        </div>
-                      )}
-                      {item.type === "audio" && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="h-12 w-12 rounded-full bg-black/50 flex items-center justify-center">
-                            <Mic className="h-6 w-6 text-white" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        {getTypeIcon(item.type)}
-                        <h3 className="font-medium text-sm truncate flex-1">
-                          {item.title}
-                        </h3>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          {getSourceIcon(item.source)}
-                          <span>{item.source}</span>
-                        </div>
-                        <span>{new Date(item.date).toLocaleDateString()}</span>
-                      </div>
-                    </div>
+              <Tabs defaultValue="videos" className="w-full">
+                <TabsList className="mb-6">
+                  <TabsTrigger value="videos" className="flex items-center gap-2">
+                    <Youtube className="h-4 w-4" /> Vídeos
+                  </TabsTrigger>
+                  <TabsTrigger value="podcasts" className="flex items-center gap-2">
+                    <Music className="h-4 w-4" /> Podcasts
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="videos">
+                  <div className="flex justify-between mb-4">
+                    <h2 className="text-xl font-semibold">Vídeos do YouTube</h2>
+                    <Button className="flex items-center gap-2">
+                      <Plus size={16} /> Adicionar Vídeo
+                    </Button>
                   </div>
-                ))}
-              </div>
+
+                  {isLoading ? (
+                    <div className="text-center py-10">Carregando vídeos...</div>
+                  ) : videos.length === 0 ? (
+                    <div className="text-center py-10 border rounded-lg bg-gray-50">
+                      <p className="text-gray-500">Nenhum vídeo cadastrado.</p>
+                      <Button variant="outline" className="mt-4">
+                        <Plus size={16} className="mr-2" /> Adicionar seu primeiro vídeo
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-4 py-3 text-left">Título</th>
+                            <th className="px-4 py-3 text-left">ID do YouTube</th>
+                            <th className="px-4 py-3 text-left">Data</th>
+                            <th className="px-4 py-3 text-right">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {videos.map((video) => (
+                            <tr key={video.id} className="border-t">
+                              <td className="px-4 py-3">{video.title}</td>
+                              <td className="px-4 py-3">{video.youtubeId}</td>
+                              <td className="px-4 py-3">{new Date(video.date).toLocaleDateString()}</td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="ghost" size="icon">
+                                    <Eye size={16} />
+                                  </Button>
+                                  <Button variant="ghost" size="icon">
+                                    <Pencil size={16} />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="text-red-500">
+                                    <Trash2 size={16} />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="podcasts">
+                  <div className="flex justify-between mb-4">
+                    <h2 className="text-xl font-semibold">Podcasts do Spotify</h2>
+                    <Button className="flex items-center gap-2">
+                      <Plus size={16} /> Adicionar Podcast
+                    </Button>
+                  </div>
+
+                  {isLoading ? (
+                    <div className="text-center py-10">Carregando podcasts...</div>
+                  ) : podcasts.length === 0 ? (
+                    <div className="text-center py-10 border rounded-lg bg-gray-50">
+                      <p className="text-gray-500">Nenhum podcast cadastrado.</p>
+                      <Button variant="outline" className="mt-4">
+                        <Plus size={16} className="mr-2" /> Adicionar seu primeiro podcast
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-4 py-3 text-left">Título</th>
+                            <th className="px-4 py-3 text-left">ID do Spotify</th>
+                            <th className="px-4 py-3 text-left">Data</th>
+                            <th className="px-4 py-3 text-right">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {podcasts.map((podcast) => (
+                            <tr key={podcast.id} className="border-t">
+                              <td className="px-4 py-3">{podcast.title}</td>
+                              <td className="px-4 py-3">{podcast.spotifyId}</td>
+                              <td className="px-4 py-3">{new Date(podcast.date).toLocaleDateString()}</td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="ghost" size="icon">
+                                    <Eye size={16} />
+                                  </Button>
+                                  <Button variant="ghost" size="icon">
+                                    <Pencil size={16} />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="text-red-500">
+                                    <Trash2 size={16} />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           </CardContent>
         </Card>
       </div>
     </DashboardLayout>
   );
-}
+};
+
+export default Media;
