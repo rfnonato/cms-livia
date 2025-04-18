@@ -17,6 +17,7 @@ import {
   CreatePageDto, UpdatePageDto, PageResponseDto, PageListItemDto,
   UploadMediaFileDto, UpdateMediaFileDto, MediaFileResponseDto
 } from '@/types/dtos';
+import { supabase } from './supabaseClient';
 
 /**
  * Interface para a resposta paginada da API
@@ -33,40 +34,58 @@ export interface PaginatedResponse<T> {
 
 /**
  * Classe base para todos os serviços de API
- * Implementará o cliente Supabase quando a integração for feita
+ * Implementa o cliente Supabase para todas as operações
  */
 export class ApiService {
   private baseUrl: string;
-  // private supabaseClient: SupabaseClient;
 
   constructor(baseUrl: string = '/api') {
     this.baseUrl = baseUrl;
-    // Aqui será inicializado o cliente Supabase quando integrado
   }
 
-  // Funções utilitárias que posteriormente usarão o Supabase
   protected async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    // Implementação temporária simulando a resposta
-    console.log(`GET ${endpoint}`, params);
-    return {} as T;
+    const { data, error } = await supabase
+      .from(endpoint)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as T;
   }
 
   protected async post<T>(endpoint: string, data: any): Promise<T> {
-    // Implementação temporária simulando a resposta
-    console.log(`POST ${endpoint}`, data);
-    return {} as T;
+    const { data: response, error } = await supabase
+      .from(endpoint)
+      .insert(data)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return response as T;
   }
 
   protected async put<T>(endpoint: string, data: any): Promise<T> {
-    // Implementação temporária simulando a resposta
-    console.log(`PUT ${endpoint}`, data);
-    return {} as T;
+    const { data: response, error } = await supabase
+      .from(endpoint)
+      .update(data)
+      .eq('id', data.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return response as T;
   }
 
-  protected async delete<T>(endpoint: string): Promise<T> {
-    // Implementação temporária simulando a resposta
-    console.log(`DELETE ${endpoint}`);
-    return {} as T;
+  protected async delete<T>(endpoint: string, id: string): Promise<T> {
+    const { data, error } = await supabase
+      .from(endpoint)
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as T;
   }
 
   protected buildQueryString(params: Record<string, any>): string {
@@ -108,7 +127,7 @@ export class PostsService extends ApiService {
   }
 
   async deletePost(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/posts/${id}`);
+    return this.delete<{ success: boolean }>('/posts', id);
   }
 
   // Funções para gerenciar categorias
@@ -125,7 +144,7 @@ export class PostsService extends ApiService {
   }
 
   async deleteCategory(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/posts/categories/${id}`);
+    return this.delete<{ success: boolean }>('/posts/categories', id);
   }
 
   // Funções para gerenciar tags
@@ -142,7 +161,7 @@ export class PostsService extends ApiService {
   }
 
   async deleteTag(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/posts/tags/${id}`);
+    return this.delete<{ success: boolean }>('/posts/tags', id);
   }
 }
 
@@ -171,7 +190,7 @@ export class VideosService extends ApiService {
   }
 
   async deleteVideo(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/videos/${id}`);
+    return this.delete<{ success: boolean }>('/videos', id);
   }
 
   async getCategories(): Promise<{ id: string; name: string; slug: string; description?: string; type: string; }[]> {
@@ -204,7 +223,7 @@ export class PodcastsService extends ApiService {
   }
 
   async deletePodcast(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/podcasts/${id}`);
+    return this.delete<{ success: boolean }>('/podcasts', id);
   }
 }
 
@@ -229,7 +248,7 @@ export class MediaCategoriesService extends ApiService {
   }
 
   async deleteCategory(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/media/categories/${id}`);
+    return this.delete<{ success: boolean }>('/media/categories', id);
   }
 }
 
@@ -258,7 +277,7 @@ export class SubscribersService extends ApiService {
   }
 
   async deleteSubscriber(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/newsletter/subscribers/${id}`);
+    return this.delete<{ success: boolean }>('/newsletter/subscribers', id);
   }
 
   async exportSubscribers(params?: SubscriberQueryParams): Promise<Blob> {
@@ -291,7 +310,7 @@ export class CampaignsService extends ApiService {
   }
 
   async deleteCampaign(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/newsletter/campaigns/${id}`);
+    return this.delete<{ success: boolean }>('/newsletter/campaigns', id);
   }
 
   async sendCampaignTest(id: string, emails: string[]): Promise<{ success: boolean }> {
@@ -332,7 +351,7 @@ export class PagesService extends ApiService {
   }
 
   async deletePage(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/pages/${id}`);
+    return this.delete<{ success: boolean }>('/pages', id);
   }
 
   async getTemplates(): Promise<{ id: string; name: string; }[]> {
@@ -373,7 +392,7 @@ export class MediaFilesService extends ApiService {
   }
 
   async deleteMediaFile(id: string): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/media/files/${id}`);
+    return this.delete<{ success: boolean }>('/media/files', id);
   }
 }
 

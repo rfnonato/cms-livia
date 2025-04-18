@@ -8,7 +8,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "db:test": "ts-node --project tsconfig.json src/scripts/testConnection.ts",
+    "db:setup": "ts-node --project tsconfig.json src/scripts/setupDatabase.ts",
+    "db:seed": "ts-node --project tsconfig.json src/scripts/seedData.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
